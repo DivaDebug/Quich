@@ -72,10 +72,22 @@ struct AppBinding: Codable, Identifiable, Equatable {
     var id = UUID()
     var appPath: String
     var combo: KeyCombo?
+    var isEnabled = true
 
     var appURL: URL { URL(fileURLWithPath: appPath) }
 
     var displayName: String {
         FileManager.default.displayName(atPath: appPath).replacingOccurrences(of: ".app", with: "")
+    }
+}
+
+// 自訂解碼：舊版存檔沒有 isEnabled，缺少時預設為啟用；寫在 extension 才能保留自動產生的 memberwise init
+extension AppBinding {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        appPath = try container.decode(String.self, forKey: .appPath)
+        combo = try container.decodeIfPresent(KeyCombo.self, forKey: .combo)
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
     }
 }

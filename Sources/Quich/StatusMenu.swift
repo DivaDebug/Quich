@@ -53,7 +53,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             item.representedObject = binding.id
             item.image = AppLauncher.icon(for: binding.appPath, size: 16)
             // 借用選單原生的快捷鍵欄位，把熱鍵顯示在項目右側
-            if let combo = binding.combo, let key = Self.keyEquivalent(for: combo) {
+            // 停用的熱鍵不顯示組合鍵，但仍可從選單點選打開
+            if binding.isEnabled, let combo = binding.combo, let key = Self.keyEquivalent(for: combo) {
                 item.keyEquivalent = key
                 item.keyEquivalentModifierMask = Self.modifierMask(for: combo)
             }

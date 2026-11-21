@@ -74,7 +74,7 @@ final class BindingStore: ObservableObject {
         }
 
         var conflicts: Set<UUID> = []
-        for binding in bindings {
+        for binding in bindings where binding.isEnabled {
             guard let combo = binding.combo else { continue }
             let ok = center.register(combo) { [weak self] in
                 // 觸發當下重新讀取最新設定，避免用到舊的 app 路徑或「再按一次」行為

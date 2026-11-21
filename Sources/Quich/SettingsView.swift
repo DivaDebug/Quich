@@ -132,17 +132,27 @@ struct SettingsView: View {
         let conflicted = store.conflictedIDs.contains(item.id)
 
         return HStack(spacing: 12) {
-            Image(nsImage: AppLauncher.icon(for: item.appPath, size: 24))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.displayName).lineLimit(1)
-                if conflicted {
-                    Text("這組熱鍵已被其他程式佔用").font(.caption).foregroundStyle(.red)
+            // 停用時把 app 與熱鍵淡化，一眼看出哪些熱鍵沒有作用
+            Group {
+                Image(nsImage: AppLauncher.icon(for: item.appPath, size: 24))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.displayName).lineLimit(1)
+                    if conflicted {
+                        Text("這組熱鍵已被其他程式佔用").font(.caption).foregroundStyle(.red)
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            HotkeyRecorder(binding: binding, message: $message)
-                .frame(width: 130)
+                HotkeyRecorder(binding: binding, message: $message)
+                    .frame(width: 130)
+            }
+            .opacity(item.isEnabled ? 1 : 0.45)
+
+            Toggle("", isOn: binding.isEnabled)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .help(item.isEnabled ? "停用這組熱鍵" : "啟用這組熱鍵")
 
             Button {
                 store.remove(item.id)

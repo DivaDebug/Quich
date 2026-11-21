@@ -44,4 +44,5 @@ Quich 沒有經過 Apple 認證簽章，所以第一次打開時，macOS 會跳�
 ```bash
 ./scripts/build-app.sh            # 只建立 build/Quich.app
 ./scripts/build-app.sh --install  # 建立後複製到 /Applications 並啟動
+./scripts/build-app.sh --zip      # 建立後另外壓縮成 build/Quich.zip（發布 Release 用）
 ```

@@ -1,17 +1,22 @@
+<p align="center">
+  <img src="Resources/AppIcon.png" width="128" alt="Quich 圖示">
+</p>
+
 # Quich
 
-Quick + Launch。住在選單列的小工具，用全域熱鍵打開指定的 app。
-
-用 Carbon 的 `RegisterEventHotKey` 向系統登記熱鍵，所以不管前景是哪個 app（包括不轉交「服務」快捷鍵的 Dia 等 Chromium 瀏覽器）都有效。
+Quick + Launch。住在 Mac 選單列的小工具，按一組熱鍵就打開你指定的 app。不管現在停在哪個 app，熱鍵都有效。
 
 ## 功能
 
-- 每個 app 綁一組熱鍵，在設定視窗直接按下組合鍵錄製
-- 目標 app 已在前景時再按一次：「維持在前景」（預設）或「隱藏」，所有 app 共用同一個設定
-- 選單列下拉選單可以看所有熱鍵、一鍵暫停全部熱鍵
-- 可隱藏選單列圖示，Quich 仍在背景執行；要回到設定時再打開一次 Quich（例如用 Spotlight）
-- 登入時自動啟動
-- 第一次啟動（還沒設定任何 app）時會自動打開設定視窗
+- **一鍵打開 app**：替常用的 app 各設一組熱鍵，按下就打開或切到前景；每組熱鍵都能單獨開關
+- **再按一次的行為**：app 已經在前景時再按一次，可以選擇「維持在前景」或「隱藏」
+- **安靜地待在背景**：可以從選單列暫停所有熱鍵，也可以把選單列圖示整個隱藏
+- **登入時自動啟動**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
+  <img src="docs/images/settings-light.png" width="480" alt="Quich 設定視窗">
+</picture>
 
 ## 建置與安裝
 
@@ -21,24 +26,3 @@ Quick + Launch。住在選單列的小工具，用全域熱鍵打開指定的 ap
 ./scripts/build-app.sh            # 只建立 build/Quich.app
 ./scripts/build-app.sh --install  # 建立後複製到 /Applications 並啟動
 ```
-
-## App icon
-
-`Resources/AppIcon.icns` 由 `scripts/make-icon.swift` 以程式繪製產生。要調整顏色或造型時修改該檔，再執行：
-
-```bash
-swift scripts/make-icon.swift Resources
-```
-
-## 專案結構
-
-| 檔案 | 用途 |
-| --- | --- |
-| `QuichApp.swift` | 進入點 |
-| `StatusMenu.swift` | 選單列圖示與下拉選單（原生 NSMenu） |
-| `SettingsView.swift` | 設定視窗 |
-| `HotkeyRecorder.swift` | 錄製熱鍵的按鈕 |
-| `BindingStore.swift` | 熱鍵清單的儲存、登記與登入啟動 |
-| `HotkeyCenter.swift` | 向系統登記全域熱鍵 |
-| `AppLauncher.swift` | 打開或隱藏目標 app |
-| `Models.swift` | 資料模型 |

@@ -6,7 +6,7 @@ import Combine
 final class StatusMenuController: NSObject, NSMenuDelegate {
     private let store: BindingStore
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-    private var cancellable: AnyCancellable?
+    private var cancellables: Set<AnyCancellable> = []
 
     init(store: BindingStore) {
         self.store = store
@@ -16,9 +16,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
-        cancellable = store.$isEnabled.sink { [weak self] enabled in
+        store.$isEnabled.sink { [weak self] enabled in
             self?.updateIcon(enabled: enabled)
-        }
+        }.store(in: &cancellables)
+        store.$showsMenuBarIcon.combineLatest(store.$isSettingsOpen).sink { [weak self] show, settingsOpen in
+            self?.statusItem.isVisible = show || settingsOpen
+        }.store(in: &cancellables)
     }
 
     // 熱鍵暫停時改成劃掉的閃電
@@ -71,7 +74,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     @objc private func launch(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? UUID,
               let binding = store.bindings.first(where: { $0.id == id }) else { return }
-        AppLauncher.trigger(binding)
+        AppLauncher.trigger(binding, pressAgain: store.pressAgain)
     }
 
     @objc private func openSettings() {

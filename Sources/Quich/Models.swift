@@ -72,7 +72,6 @@ struct AppBinding: Codable, Identifiable, Equatable {
     var id = UUID()
     var appPath: String
     var combo: KeyCombo?
-    var pressAgain: PressAgainAction = .stay
 
     var appURL: URL { URL(fileURLWithPath: appPath) }
 

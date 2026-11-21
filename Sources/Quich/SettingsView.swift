@@ -13,8 +13,14 @@ enum SettingsWindow {
             newWindow.styleMask = [.titled, .closable]
             newWindow.isReleasedWhenClosed = false
             newWindow.center()
+            // 關閉設定時通知 store，讓選單列圖示回到使用者設定的顯示狀態
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification,
+                                                   object: newWindow, queue: .main) { _ in
+                store.isSettingsOpen = false
+            }
             window = newWindow
         }
+        store.isSettingsOpen = true
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
     }
@@ -27,35 +33,98 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-
-            if store.bindings.isEmpty {
-                Text("按「新增 app」加入第一個要用熱鍵打開的 app。")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 80)
+            sectionTitle("熱鍵")
+            card {
+                if store.bindings.isEmpty {
+                    Text("還沒有任何 app，按下方「新增 app」加入第一個。")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                    Divider()
+                }
+                ForEach($store.bindings) { $binding in
+                    row(for: $binding)
+                    Divider()
+                }
+                Button {
+                    pickApp()
+                } label: {
+                    Label("新增 app", systemImage: "plus")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
             }
-            ForEach($store.bindings) { $binding in
-                row(for: $binding)
+            // 只在錄製熱鍵出錯時顯示錯誤訊息
+            if let message {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 6)
+            }
+
+            sectionTitle("一般")
+            card {
+                settingRow("已在前景時再按一次") {
+                    Picker("", selection: $store.pressAgain) {
+                        ForEach(PressAgainAction.allCases) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
+                }
                 Divider()
+                settingRow("在選單列顯示圖示") {
+                    Toggle("", isOn: $store.showsMenuBarIcon)
+                }
+                Divider()
+                settingRow("登入時自動啟動") {
+                    Toggle("", isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { newValue in
+                            LaunchAtLogin.set(newValue)
+                            launchAtLogin = LaunchAtLogin.isEnabled
+                        }
+                }
             }
+            .toggleStyle(.switch)
+            .controlSize(.small)
 
-            footer
+            HStack {
+                Spacer()
+                // 圖示隱藏時選單裡的「結束」也看不到，所以設定視窗也放一個
+                Button("結束 Quich") { NSApp.terminate(nil) }
+            }
+            .padding(16)
         }
-        .frame(width: 560)
+        .frame(width: 480)
     }
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            Text("App").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 36)
-            Text("熱鍵").frame(width: 130, alignment: .leading)
-            Text("已在前景時再按一次").frame(width: 150, alignment: .leading)
-            Spacer().frame(width: 24)
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.title3.weight(.semibold))
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 6)
+    }
+
+    // 圓角卡片外框，仿系統設定的分區樣式
+    private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0, content: content)
+            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.08)))
+            .padding(.horizontal, 16)
+    }
+
+    private func settingRow<Control: View>(_ title: String, @ViewBuilder control: () -> Control) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            control()
         }
-        .font(.callout.weight(.medium))
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 38)
     }
 
     private func row(for binding: Binding<AppBinding>) -> some View {
@@ -73,13 +142,7 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HotkeyRecorder(binding: binding, message: $message)
-                .frame(width: 130, alignment: .leading)
-
-            Picker("", selection: binding.pressAgain) {
-                ForEach(PressAgainAction.allCases) { Text($0.title).tag($0) }
-            }
-            .labelsHidden()
-            .frame(width: 150)
+                .frame(width: 130)
 
             Button {
                 store.remove(item.id)
@@ -88,32 +151,9 @@ struct SettingsView: View {
             }
             .buttonStyle(.borderless)
             .help("移除 \(item.displayName)")
-            .frame(width: 24)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-    }
-
-    private var footer: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Button {
-                    pickApp()
-                } label: {
-                    Label("新增 app", systemImage: "plus")
-                }
-                Spacer()
-                Toggle("登入時自動啟動", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { newValue in
-                        LaunchAtLogin.set(newValue)
-                        launchAtLogin = LaunchAtLogin.isEnabled
-                    }
-            }
-            Text(message ?? "點熱鍵欄位後，直接按下新的組合鍵來錄製；按 Esc 取消，按 ⌫ 清除。")
-                .font(.caption)
-                .foregroundStyle(message == nil ? Color.secondary : Color.red)
-        }
-        .padding(16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     private func pickApp() {

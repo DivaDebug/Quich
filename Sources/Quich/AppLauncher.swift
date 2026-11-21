@@ -2,9 +2,9 @@ import AppKit
 
 enum AppLauncher {
     // 熱鍵觸發時呼叫：目標 app 已在前景就依設定處理，否則打開並切到前景
-    static func trigger(_ binding: AppBinding) {
+    static func trigger(_ binding: AppBinding, pressAgain: PressAgainAction) {
         if let front = NSWorkspace.shared.frontmostApplication, isSameApp(front, binding.appURL) {
-            switch binding.pressAgain {
+            switch pressAgain {
             case .stay:
                 return
             case .hide:

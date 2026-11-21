@@ -9,6 +9,16 @@ final class BindingStore: ObservableObject {
     @Published var isEnabled: Bool = true {
         didSet { UserDefaults.standard.set(isEnabled, forKey: Keys.enabled); reregister() }
     }
+    // 目標 app 已在前景時再按一次熱鍵的行為，所有 app 共用
+    @Published var pressAgain: PressAgainAction = .stay {
+        didSet { UserDefaults.standard.set(pressAgain.rawValue, forKey: Keys.pressAgain) }
+    }
+    // 隱藏後 Quich 仍在背景執行，熱鍵照常運作；再次打開 Quich 即可叫出設定視窗
+    @Published var showsMenuBarIcon: Bool = true {
+        didSet { UserDefaults.standard.set(showsMenuBarIcon, forKey: Keys.showsMenuBarIcon) }
+    }
+    // 設定視窗開著時，即使圖示設為隱藏也暫時顯示，方便確認目前狀態
+    @Published var isSettingsOpen = false
     // 錄製新熱鍵期間暫停所有熱鍵，否則按下已登記的組合會直接觸發而錄不到
     @Published var isRecording = false {
         didSet { reregister() }
@@ -19,6 +29,8 @@ final class BindingStore: ObservableObject {
     private enum Keys {
         static let bindings = "bindings"
         static let enabled = "enabled"
+        static let showsMenuBarIcon = "showsMenuBarIcon"
+        static let pressAgain = "pressAgain"
     }
 
     init() {
@@ -28,6 +40,8 @@ final class BindingStore: ObservableObject {
             bindings = saved
         }
         isEnabled = defaults.object(forKey: Keys.enabled) as? Bool ?? true
+        showsMenuBarIcon = defaults.object(forKey: Keys.showsMenuBarIcon) as? Bool ?? true
+        pressAgain = defaults.string(forKey: Keys.pressAgain).flatMap(PressAgainAction.init) ?? .stay
         reregister()
     }
 
@@ -63,9 +77,9 @@ final class BindingStore: ObservableObject {
         for binding in bindings {
             guard let combo = binding.combo else { continue }
             let ok = center.register(combo) { [weak self] in
-                // 觸發當下重新讀取最新設定，避免用到舊的「再按一次」行為
-                guard let latest = self?.bindings.first(where: { $0.id == binding.id }) else { return }
-                AppLauncher.trigger(latest)
+                // 觸發當下重新讀取最新設定，避免用到舊的 app 路徑或「再按一次」行為
+                guard let self, let latest = self.bindings.first(where: { $0.id == binding.id }) else { return }
+                AppLauncher.trigger(latest, pressAgain: self.pressAgain)
             }
             if !ok { conflicts.insert(binding.id) }
         }
